@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+require 'yaml'
+require 'pp'
+require File.join(File.dirname(__FILE__), *%w[.. lib beanstalk_manager])
+
+PID_FOLDER = File.join(File.dirname(__FILE__), *%w[.. tmp pids])
+CONFIG = YAML.load(File.open(File.join(File.dirname(__FILE__), *%w[.. config beanstalk.yml])))
+MANAGER = Beanstalk::DaemonManager.new(PID_FOLDER)
+
+CONFIG.each { |label, settings| MANAGER.register_daemon(settings[:host], settings[:port]) }
+
+case ARGV[0]
+  
+  when 'start'
+    puts "Starting beanstalk instances..."
+    pids = MANAGER.run_all
+    puts "Started #{pids.length} beanstalk instances with pids [#{pids.join(',')}]."
+  
+  when 'stop'
+    puts "Stopping running beanstalk instances."
+    MANAGER.kill_all
+    puts "Done."
+    
+  when 'restart'
+    puts "Restarting all beanstalk instances..."
+    MANAGER.kill_all
+    sleep 0.5
+    pids = MANAGER.run_all
+    puts "Done (pids: [#{pids.join(',')}])."
+    
+  when 'status'
+    MANAGER.stats.each do |port, stats|
+      print "Beanstalk (#{port}): "
+      pp stats
+    end
+    
+  else
+    puts "Usage: beanstalk {start|stop|restart|status}"
+    
+end
