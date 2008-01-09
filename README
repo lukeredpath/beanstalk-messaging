@@ -1,0 +1,18 @@
+Beanstalk Messaging Plugin for Rails
+====================================
+
+SETUP
+=====
+
+Copy beanstalk.example.yml from the plugin config folder to your Rails config folder and configure the queues that you need for your application. Use script/beanstalk to start/stop/restart your beanstalkd processes.
+
+USAGE
+=====
+
+Use the QueueManager class to access your queues by name.
+
+In your environment.rb file, you might find it useful to create a single instance of a QueueManager using your beanstalk.yml config as a global constant that you can use throughout your app.
+
+Use the Beanstalk::Queue API to push messages on to the queue and consume messages.
+
+You can disable queues globally by using the QueueManager#disable method to temporarily disable the use of that particular queue. QueueManager#disable_all disables all queues. When a queue is disabled, the QueueManager will return a NullQueue instead of an actual Queue object which will handle any Queue API calls silently.
