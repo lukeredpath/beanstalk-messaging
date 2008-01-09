@@ -124,7 +124,7 @@ module Beanstalk
 
     private
       def create_queue(queue_name)
-        raise Messaging::UnknownQueue unless @config[queue_name]
+        raise Messaging::UnknownQueue.new("Unknown queue: #{queue_name}. Check your configuration.") unless @config[queue_name]
         host, port  = @config[queue_name][:host], @config[queue_name][:port]
         begin
           Queue.new(create_pool(host, port))
