@@ -121,6 +121,10 @@ module Beanstalk
     def disable_all!
       @config.keys.each { |queue| disable(queue) }
     end
+    
+    def reset_queue(queue_name)
+      @queues[queue_name] = create_queue(queue_name)
+    end
 
     private
       def create_queue(queue_name)
@@ -143,10 +147,6 @@ module Beanstalk
         rescue Timeout::Error
           raise ConnectionTimeout
         end
-      end
-      
-      def reset_queue(queue_name)
-        @queues[queue_name] = create_queue(queue_name)
       end
   end
   
