@@ -28,18 +28,24 @@ module Beanstalk
     end
   end
   
+  class UnknownDaemon < StandardError; end
+  
   class DaemonManager
     def initialize(pid_folder)
       @pid_folder = pid_folder
-      @daemons = []
+      @daemons = {}
     end
     
-    def register_daemon(host, port)
-      @daemons << Daemon.new(host, port)
+    def register_daemon(name, host, port)
+      @daemons[name] = Daemon.new(host, port)
     end
     
     def run_all
-      @daemons.map do |daemon|
+      @daemons.keys.map { |name| run(name) }
+    end
+    
+    def run(daemon_name)
+      if daemon = @daemons[daemon_name]
         if conn = daemon.run
           pid = conn.stats['pid']
           pid_path = File.join(@pid_folder, "beanstalk_#{daemon.port}.pid")
@@ -48,27 +54,35 @@ module Beanstalk
         else
           nil
         end
+      else
+        raise UnknownDaemon
       end
     end
     
+    def kill(daemon_name)
+      kill_daemon(File.join(@pid_folder, "beanstalk_#{@daemons[daemon_name].port}.pid"))
+    end
+    
     def stats
-      @daemons.inject({}) do |hash, daemon| 
+      @daemons.inject({}) do |hash, (name, daemon)| 
         begin
           stats = daemon.api_connection.stats rescue nil || "Not running"
         rescue EOFError
           stats = "Not running"
         end
-        hash[daemon.port] = stats
+        hash[name] = stats
         hash
       end
     end
     
     def kill_all
-      Dir[File.join(@pid_folder, "beanstalk_*.pid")].each do |pid_file|
+      Dir[File.join(@pid_folder, "beanstalk_*.pid")].each { |pid_file| kill_daemon(pid_file) }
+    end
+    
+    private
+      def kill_daemon(pid_file)
         system("kill -9 #{File.read(pid_file)}")
         FileUtils.rm_f(pid_file)
       end
-    end
   end
-  
 end
