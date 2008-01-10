@@ -96,9 +96,17 @@ module Beanstalk
       @stale
     end
     
-    def push(message)
+    def number_of_pending_messages
+      0
     end
+    
+    def push(message); end
+    
     alias :<< :push
+    
+    def method_missing(*args)
+      # do nothing
+    end
   end
   
   class ConnectionTimeout < Exception; end

@@ -219,4 +219,8 @@ class NullQueueTest < Test::Unit::TestCase
     assert_respond_to Beanstalk::NullQueue.new, :<<
   end
   
+  def test_should_always_have_zero_pending_messages
+    assert_equal 0, Beanstalk::NullQueue.new.number_of_pending_messages
+  end
+  
 end
