@@ -1,88 +1,203 @@
-require 'rubygems'
-require 'fileutils'
 require 'beanstalk-client'
+require 'timeout'
+
+module Messaging
+  class UnknownQueue < Exception; end
+end
 
 module Beanstalk
   
-  class Daemon
-    attr_reader :port
+  class_eval do
+    attr_writer :connection_timeout
     
-    def initialize(host, port)
-      @host, @port = host, port
-    end
-    
-    def run(daemonize = true)
-      optstring = "-l #{@host} -p #{@port}"
-      optstring << " -d" if daemonize
-      if system("beanstalkd #{optstring}")
-        return api_connection
-      else
-        return false
-      end
-    end
-    
-    def api_connection
-      RawConnection.new("#{@host}:#{@port}")
-    rescue Errno::ECONNREFUSED
-      nil
+    def connection_timeout
+      @connection_timeout || 1
     end
   end
   
-  class UnknownDaemon < StandardError; end
-  
-  class DaemonManager
-    def initialize(pid_folder)
-      @pid_folder = pid_folder
-      @daemons = {}
-    end
-    
-    def register_daemon(name, host, port)
-      @daemons[name] = Daemon.new(host, port)
-    end
-    
-    def run_all
-      @daemons.keys.map { |name| run(name) }
-    end
-    
-    def run(daemon_name)
-      if daemon = @daemons[daemon_name]
-        if conn = daemon.run
-          pid = conn.stats['pid']
-          pid_path = File.join(@pid_folder, "beanstalk_#{daemon.port}.pid")
-          File.open(pid_path, 'w') { |io| io.write(pid) }
-          pid
-        else
-          nil
-        end
-      else
-        raise UnknownDaemon
-      end
-    end
-    
-    def kill(daemon_name)
-      kill_daemon(File.join(@pid_folder, "beanstalk_#{@daemons[daemon_name].port}.pid"))
-    end
-    
-    def stats
-      @daemons.inject({}) do |hash, (name, daemon)| 
+  # File lib/beanstalk-client/connection.rb, line 199
+  # monkey-patch for version 0.6 of beanstalk-client gem
+  class Pool
+    def connect()
+      @connections ||= {}
+      @addrs.each do |addr|
         begin
-          stats = daemon.api_connection.stats rescue nil || "Not running"
-        rescue EOFError
-          stats = "Not running"
+          if !@connections.include?(addr)
+            puts "connecting to beanstalk at #{addr}"
+            @connections[addr] = CleanupWrapper.new(addr, self)
+          end
+        # WE WANT THE EXCEPTIONS TO BE RAISED
+        # rescue Exception => ex
+        #   puts "#{ex.class}: #{ex}"
+        #   #puts begin ex.fixed_backtrace rescue ex.backtrace end
         end
-        hash[name] = stats
-        hash
+      end
+      @connections.size
+    end
+  end  
+  
+  class Queue
+    def initialize(pool)
+      @pool = pool
+      @stale = false
+    end
+    
+    def stale?
+      @stale
+    end
+    
+    def push(message)
+      Timeout.timeout(Beanstalk.connection_timeout) do
+        @pool.yput(message)
+      end
+    rescue Timeout::Error
+      @stale = true
+    rescue Beanstalk::UnexpectedResponse
+      @stale = true
+    rescue EOFError, Errno::ECONNRESET, Errno::EPIPE
+      @stale = true
+    rescue RuntimeError
+      @stale = true
+    end
+
+    alias :<< :push
+    
+    def number_of_pending_messages
+      raw_stats['current-jobs-ready']
+    end
+    
+    def total_jobs
+      raw_stats['total-jobs']
+    end
+    
+    def raw_stats
+      @pool.stats
+    end
+    
+    def next_message
+      if number_of_pending_messages > 0
+        job = @pool.reserve
+        if block_given?
+          yield job.ybody
+          job.delete
+        else
+          return job
+        end
       end
     end
-    
-    def kill_all
-      Dir[File.join(@pid_folder, "beanstalk_*.pid")].each { |pid_file| kill_daemon(pid_file) }
+  end
+  
+  class NullQueue
+    def initialize(stale = true)
+      @stale = stale
     end
     
+    def stale?
+      @stale
+    end
+    
+    def method_missing(*args)
+      # accept anything
+    end
+  end
+  
+  class ConnectionTimeout < Exception; end
+  
+  class QueueManager    
+    def initialize(config_path)
+      @config = YAML.load(File.open(config_path))
+      @queues = {}
+    end
+
+    def queue(queue_name)
+      queue = @queues[queue_name] ||= create_queue(queue_name)
+      queue.stale? ? reset_queue(queue_name) : queue
+    end
+    
+    def disable(queue_name)
+      @queues[queue_name] = NullQueue.new(stale = false)
+    end
+    
+    def disable_all!
+      @config.keys.each { |queue| disable(queue) }
+    end
+
+    def reset_queue(queue_name)
+      @queues[queue_name] = create_queue(queue_name)
+    end
+
     private
-      def kill_daemon(pid_file)
-        system("kill -9 #{File.read(pid_file)}")
-        FileUtils.rm_f(pid_file)
+      def create_queue(queue_name)
+        raise Messaging::UnknownQueue unless @config[queue_name]
+        host, port  = @config[queue_name][:host], @config[queue_name][:port]
+        begin
+          Queue.new(create_pool(host, port))
+        rescue Errno::ECONNREFUSED, Errno::EADDRNOTAVAIL
+          NullQueue.new
+        rescue ConnectionTimeout
+          NullQueue.new
+        end
       end
+      
+      def create_pool(host, port)
+        begin
+          Timeout::timeout(Beanstalk.connection_timeout) do
+            Beanstalk::Pool.new(["#{host}:#{port}"])
+          end
+        rescue Timeout::Error
+          raise ConnectionTimeout
+        end
+      end
+  end
+  
+  class QueuePoller
+    def initialize(queue_manager, retry_delay = 30, output = STDOUT)
+      @queue_manager = queue_manager
+      @output = output
+      @retry_delay = retry_delay
+    end
+    
+    def puts(object)
+      @output.puts(object)
+    end
+    
+    def load_queue!(queue_name)
+      retry_attempts = 0
+      loop do
+        retry_attempts += 1
+        puts "Attempting to establish connection to queue (attempt #{retry_attempts})"
+        @queue = @queue_manager.reset_queue(queue_name)
+        unless @queue.stale?
+          puts "Connection established."
+          break
+        end
+        sleep @retry_delay
+      end
+    end
+    
+    def poll(queue_name)
+      load_queue!(queue_name)
+      
+      loop do
+        if(pending_messages = @queue.number_of_pending_messages) && pending_messages > 0
+          begin
+            message = @queue.next_message
+            yield message
+            message.delete
+          rescue Beanstalk::UnexpectedResponse => e
+            puts "Unexpected response received from Beanstalk (#{e.message}) Waiting before continuing.".
+            message.release if message
+            sleep @retry_delay
+            next
+          rescue EOFError, Errno::ECONNRESET => e
+            puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
+            retry_attempts = 0
+            sleep @retry_delay
+            load_queue!(queue_name)
+          end
+        end
+      end # end loop
+    end # end def   
+    
   end
 end
