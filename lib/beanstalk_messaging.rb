@@ -197,7 +197,7 @@ module Beanstalk
             message.release if message
             sleep @retry_delay
             next
-          rescue EOFError, Errno::ECONNRESET => e
+          rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
             puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
             retry_attempts = 0
             sleep @retry_delay
