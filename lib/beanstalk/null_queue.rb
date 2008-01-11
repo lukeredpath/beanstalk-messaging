@@ -16,8 +16,8 @@ module Beanstalk
     
     alias :<< :push
     
-    def method_missing(*args)
-      # do nothing
+    def next_message(&block)
+      nil
     end
   end
 end  

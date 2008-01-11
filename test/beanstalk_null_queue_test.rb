@@ -22,4 +22,8 @@ class NullQueueTest < Test::Unit::TestCase
     assert_equal 0, Beanstalk::NullQueue.new.number_of_pending_messages
   end
   
+  def test_should_return_nil_when_requesting_next_message
+    assert_nil Beanstalk::NullQueue.new.next_message
+  end
+  
 end
