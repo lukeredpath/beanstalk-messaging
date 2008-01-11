@@ -48,7 +48,6 @@ module Beanstalk
           sleep @retry_delay
         rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
           puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
-          retry_attempts = 0
           sleep @retry_delay
           load_queue!(queue_name)
         end
