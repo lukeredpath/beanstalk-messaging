@@ -25,15 +25,13 @@ module Beanstalk
       end
     end
     
-    def poll(queue_name)
+    def poll(queue_name, &block)
       load_queue!(queue_name)
       
       loop do
         if(pending_messages = @queue.number_of_pending_messages) && pending_messages > 0
           begin
-            message = @queue.next_message
-            yield message
-            message.delete
+            @queue.next_message(&block)
           rescue Beanstalk::UnexpectedResponse => e
             puts "Unexpected response received from Beanstalk (#{e.message}) Waiting before continuing.".
             message.release if message
