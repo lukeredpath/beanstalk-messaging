@@ -1,6 +1,8 @@
 module Beanstalk
   
   class QueuePoller
+    attr_reader :queue
+    
     def initialize(queue_manager, retry_delay = 30, output = STDOUT)
       @queue_manager = queue_manager
       @output = output
@@ -29,23 +31,29 @@ module Beanstalk
       load_queue!(queue_name)
       
       loop do
-        if(pending_messages = @queue.number_of_pending_messages) && pending_messages > 0
-          begin
-            @queue.next_message(&block)
-          rescue Beanstalk::UnexpectedResponse => e
-            puts "Unexpected response received from Beanstalk (#{e.message}) Waiting before continuing.".
-            message.release if message
-            sleep @retry_delay
-            next
-          rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
-            puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
-            retry_attempts = 0
-            sleep @retry_delay
-            load_queue!(queue_name)
-          end
+        retrieve_and_handle_message(queue_name, &block)
+      end
+    end
+    
+    def retrieve_and_handle_message(queue_name, &block)
+      if (pending_messages = queue.number_of_pending_messages) && pending_messages > 0
+        begin
+          message = queue.next_message
+          puts "yielding #{message.inspect} from #{queue.inspect}"
+          yield message
+          message.delete
+        rescue Beanstalk::UnexpectedResponse => e
+          puts "Unexpected response received from Beanstalk (#{e.message}) Waiting before continuing."
+          message.release if message
+          sleep @retry_delay
+        rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
+          puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
+          retry_attempts = 0
+          sleep @retry_delay
+          load_queue!(queue_name)
         end
-      end # end loop
-    end # end def   
-  end # end class
-  
+      end  
+    end
+    
+  end  
 end
