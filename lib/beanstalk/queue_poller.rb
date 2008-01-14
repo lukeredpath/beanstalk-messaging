@@ -37,22 +37,23 @@ module Beanstalk
     end
     
     def retrieve_and_handle_message(queue_name, &block)
-      if (pending_messages = queue.number_of_pending_messages) && pending_messages > 0
-        begin
+      begin
+        message = nil
+        if (pending_messages = queue.number_of_pending_messages) && pending_messages > 0
           message = queue.next_message
           yield message
           message.delete
-        rescue Beanstalk::UnexpectedResponse => e
-          message.release if message
-          error = e.message rescue nil
-          puts "Unexpected response received from Beanstalk (#{error}) Waiting before continuing."
-          sleep @retry_delay
-        rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
-          puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
-          sleep @retry_delay
-          load_queue!(queue_name)
         end
-      end  
+      rescue Beanstalk::UnexpectedResponse => e
+        message.release if message
+        error = e.message rescue nil
+        puts "Unexpected response received from Beanstalk (#{error}) Waiting before continuing."
+        sleep @retry_delay
+      rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
+        puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
+        sleep @retry_delay
+        load_queue!(queue_name)
+      end
     end
     
   end  
