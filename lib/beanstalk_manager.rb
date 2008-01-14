@@ -59,6 +59,10 @@ module Beanstalk
       end
     end
     
+    def configured_queues
+      @daemons.keys
+    end
+    
     def kill(daemon_name)
       kill_daemon(File.join(@pid_folder, "beanstalk_#{@daemons[daemon_name].port}.pid"))
     end

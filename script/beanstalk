@@ -53,10 +53,11 @@ begin
       end
     
     when 'status'
-      MANAGER.stats.each do |name, stats|
-        print "-- #{name} queue: "
-        pp stats
-      end
+      require 'beanstalk/statistics_table_printer'
+      
+      queue_manager = Beanstalk::QueueManager.new(CONFIG)
+      stats_printer = Beanstalk::StatisticsTablePrinter.new(queue_manager)
+      puts stats_printer.render(MANAGER.configured_queues)
     
     else
       puts "Usage: beanstalk {start|stop|restart|status} [queue_name]"
