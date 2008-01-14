@@ -30,4 +30,4 @@
   :port: 13009
 :reevoo_exceptions:
   :host: 'mq.revieworld.com'
-  :port: 13009
+  :port: 13010
