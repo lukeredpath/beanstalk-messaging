@@ -39,6 +39,12 @@ class BeanstalkQueueTest < Test::Unit::TestCase
     assert @queue.stale?
   end
   
+  def test_should_mark_queue_as_stale_if_connection_pool_connection_is_refused
+    @connection_pool.stubs(:yput).raises(Errno::ECONNREFUSED)
+    @queue.push('foobar')
+    assert @queue.stale?
+  end
+  
   def test_should_mark_queue_as_stale_if_connection_pool_raises_broken_pipe_error
     @connection_pool.stubs(:yput).raises(Errno::EPIPE)
     @queue.push('foobar')

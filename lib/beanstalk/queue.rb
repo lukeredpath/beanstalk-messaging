@@ -17,7 +17,7 @@ module Beanstalk
       @stale = true
     rescue Beanstalk::UnexpectedResponse
       @stale = true
-    rescue EOFError, Errno::ECONNRESET, Errno::EPIPE
+    rescue EOFError, Errno::ECONNRESET, Errno::EPIPE, Errno::ECONNREFUSED
       @stale = true
     rescue RuntimeError
       @stale = true
