@@ -15,6 +15,20 @@ module Beanstalk
     end
   end
   
+  class RawConnection
+    def kick(max_jobs)
+      @socket.write("kick #{max_jobs}\r\n")
+      check_resp('KICKED')[0].to_i
+    end
+  end
+  
+  class Connection
+    def kick(max_jobs)
+      raw_connection = @free.take()
+      raw_connection.kick(max_jobs)
+    end
+  end
+  
   # File lib/beanstalk-client/connection.rb, line 199
   # monkey-patch for version 0.6 of beanstalk-client gem
   class Pool
@@ -33,6 +47,10 @@ module Beanstalk
         end
       end
       @connections.size
+    end
+    
+    def kick(max_jobs = 1)
+      pick_connection.kick(max_jobs)
     end
   end
   
