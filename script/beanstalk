@@ -7,8 +7,9 @@ $LOAD_PATH << File.join(File.dirname(__FILE__), *%w[.. vendor plugins beanstalk_
 
 require 'beanstalk_manager'
 
+CONFIG_PATH = File.join(File.dirname(__FILE__), *%w[.. config beanstalk.yml])
 PID_FOLDER = File.join(File.dirname(__FILE__), *%w[.. tmp pids])
-CONFIG = YAML.load(File.open(File.join(File.dirname(__FILE__), *%w[.. config beanstalk.yml])))
+CONFIG = YAML.load(File.open(CONFIG_PATH))
 MANAGER = Beanstalk::DaemonManager.new(PID_FOLDER)
 
 CONFIG.each { |name, settings| MANAGER.register_daemon(name, settings[:host], settings[:port]) }
@@ -53,11 +54,16 @@ begin
       end
     
     when 'status'
+      require 'beanstalk_messaging'
       require 'beanstalk/statistics_table_printer'
       
-      queue_manager = Beanstalk::QueueManager.new(CONFIG)
-      stats_printer = Beanstalk::StatisticsTablePrinter.new(queue_manager)
-      puts stats_printer.render(MANAGER.configured_queues)
+      $stdout = StringIO.new    
+      title = "Beanstalk Queue Statistics"
+      queue_manager = Beanstalk::QueueManager.new(CONFIG_PATH)
+      stats_printer = Beanstalk::StatisticsTablePrinter.new(queue_manager, title)
+      rendered_table = stats_printer.render(*MANAGER.configured_queues)
+      $stdout = STDOUT
+      puts rendered_table
     
     else
       puts "Usage: beanstalk {start|stop|restart|status} [queue_name]"
