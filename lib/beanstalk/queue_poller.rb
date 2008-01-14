@@ -32,6 +32,7 @@ module Beanstalk
       
       loop do
         retrieve_and_handle_message(queue_name, &block)
+        sleep 0.0001 # prevents cpu overload
       end
     end
     
