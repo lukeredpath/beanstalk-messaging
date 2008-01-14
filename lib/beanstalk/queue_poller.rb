@@ -39,7 +39,6 @@ module Beanstalk
       if (pending_messages = queue.number_of_pending_messages) && pending_messages > 0
         begin
           message = queue.next_message
-          puts "yielding #{message.inspect} from #{queue.inspect}"
           yield message
           message.delete
         rescue Beanstalk::UnexpectedResponse => e
