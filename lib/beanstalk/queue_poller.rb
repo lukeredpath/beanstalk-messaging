@@ -36,6 +36,17 @@ module Beanstalk
       end
     end
     
+    def poll_with_buffer(queue_name, limit, &block)
+      buffer = []
+      poll(queue_name) do |message|
+        buffer << message
+        if buffer.length == limit
+          yield buffer
+          buffer = []
+        end
+      end
+    end
+    
     def retrieve_and_handle_message(queue_name, &block)
       begin
         message = nil

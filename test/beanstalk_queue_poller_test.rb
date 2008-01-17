@@ -170,3 +170,41 @@ class BeanstalkQueuePollerTest < Test::Unit::TestCase
     }
   end
 end
+
+class BeanstalkQueuePollerWithBufferTest < Test::Unit::TestCase
+  
+  def setup
+    @dev_null = stub_everything('output stream')
+  end
+  
+  def test_should_collect_messages_into_a_buffer_then_yield_when_the_buffer_is_full
+    queue = Beanstalk::Queue.new(pool = stub('pool'))
+    queue.stubs(:number_of_pending_messages).returns(4)
+
+    m1 = stub_everything('message 1')
+    m2 = stub_everything('message 2')
+    pool.stubs(:reserve).returns(m1, m2)
+    
+    manager = stub('queue manager')
+    manager.stubs(:reset_queue).with(:queue_name).returns(queue)
+    
+    poller = Beanstalk::QueuePoller.new(manager, 30, @dev_null)
+    
+    limit_looping(poller)
+    
+    poller.poll_with_buffer(:queue_name, 2) do |message_buffer|
+      assert_equal message_buffer[0], m1
+      assert_equal message_buffer[1], m2
+    end
+  end
+  
+  private
+  
+  def limit_looping(object, iterations = 1)
+    object.instance_eval %{
+      def loop
+        #{iterations}.times { yield }
+      end
+    }
+  end
+end
