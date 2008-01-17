@@ -1,33 +1,27 @@
 :impressions:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13000
 :non_impressions:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13001
 :misses:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13002
 :clickthrus: 
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13003
 :was_helpfuls:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13004
 :purchases:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13005
 :reevoomark_exceptions:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13006
 :revieworld_exceptions:
-  :host: '0.0.0.0'
+  :host: 'mq.revieworld.com'
   :port: 13007
-:product_ranking:
-  :host: '0.0.0.0'
-  :port: 13008
-:published_reviews:
-  :host: '0.0.0.0'
-  :port: 13009
 :reevoo_exceptions:
-  :host: '0.0.0.0'
-  :port: 13010
+  :host: 'mq.revieworld.com'
+  :port: 13008
