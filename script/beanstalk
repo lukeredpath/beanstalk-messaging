@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'yaml'
 require 'pp'
+require 'stringio'
 
 $LOAD_PATH << File.join(File.dirname(__FILE__), *%w[.. vendor plugins beanstalk_messaging vendor beanstalk-client-0.6.0])
 $LOAD_PATH << File.join(File.dirname(__FILE__), *%w[.. vendor plugins beanstalk_messaging lib])
