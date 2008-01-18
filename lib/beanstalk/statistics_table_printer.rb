@@ -16,7 +16,12 @@ module Beanstalk
     def render(*queue_names)
       data_rows = queue_names.collect do |queue_name|
         queue = @queue_manager.queue(queue_name)
-        render_row(queue_name.to_s, queue.total_jobs, queue.number_of_pending_messages, queue.raw_stats['cmd-delete'])
+        
+        if queue.stale?
+          render_row(queue_name.to_s, 'OFFLINE', 'OFFLINE', 'OFFLINE')
+        else
+          render_row(queue_name.to_s, queue.total_jobs, queue.number_of_pending_messages, queue.raw_stats['cmd-delete'])
+        end
       end
       
       [ render_title,

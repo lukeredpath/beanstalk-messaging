@@ -12,6 +12,10 @@ module Beanstalk
       0
     end
     
+    def total_jobs
+      0
+    end
+    
     def push(message); end
     
     alias :<< :push
