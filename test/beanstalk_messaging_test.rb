@@ -11,8 +11,4 @@ class BeanstalkTest < Test::Unit::TestCase
     Beanstalk.connection_timeout = nil
     assert_equal 1, Beanstalk.connection_timeout
   end
-  
-  def test_should_make_the_rabbit_cry
-    flunk("You suck")
-  end
 end
