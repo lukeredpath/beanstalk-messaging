@@ -51,7 +51,7 @@ module Beanstalk
       begin
         message = nil
         if (pending_messages = queue.number_of_pending_messages) && pending_messages > 0
-          message = queue.next_message
+          next unless message = queue.next_message
           yield message
           message.delete
         end
