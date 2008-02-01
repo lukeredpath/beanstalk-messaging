@@ -4,6 +4,10 @@ module Beanstalk
       @config = YAML.load(File.open(config_path))
       @queues = {}
     end
+    
+    def available_queues
+      @config.keys
+    end
 
     def queue(queue_name)
       queue = @queues[queue_name] ||= create_queue(queue_name)
@@ -15,7 +19,7 @@ module Beanstalk
     end
   
     def disable_all!
-      @config.keys.each { |queue| disable(queue) }
+      available_queues.each { |queue| disable(queue) }
     end
   
     def reset_queue(queue_name)
