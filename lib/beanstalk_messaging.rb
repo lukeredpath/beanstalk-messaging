@@ -37,7 +37,6 @@ module Beanstalk
       @addrs.each do |addr|
         begin
           if !@connections.include?(addr)
-            puts "connecting to beanstalk at #{addr}"
             @connections[addr] = CleanupWrapper.new(addr, self)
           end
         # WE WANT THE EXCEPTIONS TO BE RAISED
