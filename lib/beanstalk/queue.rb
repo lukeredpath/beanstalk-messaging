@@ -4,6 +4,17 @@ module Beanstalk
       @pool = pool
       @stale = false
     end
+    
+    def self.connect(host, port, timeout = 10000)
+      Timeout.timeout(timeout) do
+        pool = Beanstalk::Pool.new(["#{host}:#{port}"])
+        if pool.open_connections.length >= 1
+          new(pool)
+        else
+          raise ConnectionError.new("Beanstalk::Pool connection failed")
+        end
+      end
+    end
   
     def stale?
       @stale

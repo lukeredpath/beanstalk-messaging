@@ -2,23 +2,22 @@ require File.dirname(__FILE__) + '/test_helper'
 
 class BeanstalkQueueManagerTest < Test::Unit::TestCase
   
-  def setup
-    @config_path = '/tmp/beanstalk.yml'
-    
-    File.stubs(:open).with(@config_path).returns(config_file = stub('io'))
-    YAML.stubs(:load).with(config_file).returns({
+  def setup    
+    @queue_manager = Beanstalk::QueueManager.new({
       :queue_one => { :host => 'localhost', :port => 12000 },
       :queue_two => { :host => 'localhost', :port => 12001 }
     })
-    
-    @queue_manager = Beanstalk::QueueManager.new(@config_path)
   end
   
   def test_should_return_a_beanstalk_queue_using_the_config_for_the_requested_queue_if_it_exists_in_the_config
-    Beanstalk::Pool.stubs(:new).with(['localhost:12000']).returns(pool = stub('pool'))
-    Beanstalk::Queue.stubs(:new).with(pool).returns(queue = stub('queue', :stale? => false))
-    
+    Beanstalk::Queue.expects(:connect).with('localhost', 12000, anything).returns(queue = stub('queue', :stale? => false))
     assert_equal queue, @queue_manager.queue(:queue_one)
+  end
+  
+  def test_should_use_connection_timeout_when_connecting_to_a_queue
+    Beanstalk.connection_timeout = 2
+    Beanstalk::Queue.expects(:connect).with(anything, anything, 2).returns(stub_everything('queue'))
+    @queue_manager.queue(:queue_one)
   end
   
   def test_should_raise_an_exception_when_trying_to_access_a_queue_which_is_not_defined_in_the_config
@@ -28,41 +27,28 @@ class BeanstalkQueueManagerTest < Test::Unit::TestCase
   end
   
   def test_should_return_the_same_instance_of_a_queue_if_asking_for_the_same_queue_more_than_once
-    Beanstalk::Pool.stubs(:new).with(['localhost:12000']).returns(pool = stub('pool'))
-    Beanstalk::Queue.stubs(:new).with(pool).returns(queue = stub('queue', :stale? => false))
-    
+    Beanstalk::Queue.expects(:connect).once.returns(queue = stub('queue', :stale? => false))
     assert_equal queue, @queue_manager.queue(:queue_one)
     assert_equal queue, @queue_manager.queue(:queue_one)
   end
   
   def test_should_return_a_new_instance_of_a_queue_if_existing_queue_has_been_marked_as_stale
-    Beanstalk::Pool.stubs(:new).with(['localhost:12000']).returns(pool = stub('pool'))
-    Beanstalk::Queue.stubs(:new).with(pool).returns(queue_instance_one = stub('queue 1', :stale? => false))
-    
+    Beanstalk::Queue.stubs(:connect).returns(queue_instance_one = stub('queue 1', :stale? => false))
     assert_equal queue_instance_one, @queue_manager.queue(:queue_one)
     
     queue_instance_one.stubs(:stale?).returns(true)
-    Beanstalk::Pool.stubs(:new).with(['localhost:12000']).returns(pool_two = stub('pool'))
-    Beanstalk::Queue.stubs(:new).with(pool_two).returns(queue_instance_two = stub('queue 2', :stale? => false))
-    
+
+    Beanstalk::Queue.expects(:connect).returns(queue_instance_two = stub('queue 2', :stale? => false))
     assert_equal queue_instance_two, @queue_manager.queue(:queue_one)
   end
   
-  def test_should_return_a_null_queue_if_queue_connection_cannot_be_established
-    Beanstalk::Pool.stubs(:new).raises(Errno::ECONNREFUSED)
-    
-    assert_instance_of Beanstalk::NullQueue, @queue_manager.queue(:queue_two)
-  end
-  
-  def test_should_return_a_null_queue_if_queue_connection_address_is_unavailable
-    Beanstalk::Pool.stubs(:new).raises(Errno::EADDRNOTAVAIL)
-    
+  def test_should_return_a_null_queue_if_a_connection_error_occurs
+    Beanstalk::Queue.stubs(:connect).raises(Beanstalk::ConnectionError)
     assert_instance_of Beanstalk::NullQueue, @queue_manager.queue(:queue_two)
   end
   
   def test_should_return_null_queue_if_pool_times_out_while_connecting
-    @queue_manager.stubs(:create_pool).raises(Beanstalk::ConnectionTimeout)
-
+    Beanstalk::Queue.stubs(:connect).raises(Timeout::Error)
     assert_instance_of Beanstalk::NullQueue, @queue_manager.queue(:queue_two)    
   end
   

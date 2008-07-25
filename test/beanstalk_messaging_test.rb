@@ -2,9 +2,8 @@ require File.dirname(__FILE__) + '/test_helper'
 require 'beanstalk-client/version'
 
 class BeanstalkTest < Test::Unit::TestCase
-  def test_should_be_using_version_0_point_6_of_the_gem
-    assert_equal '0.6.0', Beanstalk::VERSION::STRING,
-     "We currently monkey-patch the Pool class - you'll need to check this before upgrading the version"
+  def test_should_be_using_version_1_point_0_point_2_of_the_beanstalk_client_gem
+    assert_equal '1.0.2', Beanstalk::VERSION::STRING
   end
   
   def test_should_have_a_default_connection_timeout_of_1_second

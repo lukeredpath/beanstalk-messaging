@@ -3,13 +3,25 @@ require 'rake/testtask'
 require 'rake/rdoctask'
 
 desc 'Default: run unit tests.'
-task :default => :test
+task :default => 'test:unit'
 
-desc 'Test the beanstalk_messaging plugin.'
-Rake::TestTask.new(:test) do |t|
-  t.libs << 'lib'
-  t.pattern = 'test/**/*_test.rb'
-  t.verbose = true
+namespace :test do
+  desc 'Test the beanstalk_messaging plugin.'
+  Rake::TestTask.new(:unit) do |t|
+    t.libs << 'lib'
+    t.pattern = 'test/*_test.rb'
+    t.verbose = true
+  end
+
+  desc 'End to end acceptance tests, requires beanstalkd daemon.'
+  Rake::TestTask.new(:acceptance) do |t|
+    t.libs << 'lib'
+    t.pattern = 'test/acceptance/*_test.rb'
+    t.verbose = true
+  end
+  
+  desc 'Run all tests'
+  task :all => [:unit, :acceptance]
 end
 
 desc 'Generate documentation for the beanstalk_messaging plugin.'

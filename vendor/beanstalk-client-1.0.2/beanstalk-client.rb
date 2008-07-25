@@ -1,4 +1,4 @@
-# beanstalk-client/bag.rb - client library for beanstalk
+# beanstalk-client.rb - client library for beanstalk
 
 # Copyright (C) 2007 Philotic Inc.
 
@@ -15,22 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-class Beanstalk::Bag
-  def initialize(initial_size=0, &default)
-    @default = default
-    @items = []
-    initial_size.times{give(default.call())}
-  end
+$:.unshift(File.dirname(__FILE__))
 
-  def give(x)
-    (@items << x)[-1]
-  end
+module Beanstalk
+  extend self
 
-  def take()
-    @items.pop or @default.call()
-  end
-
-  def size()
-    @items.size
-  end
+  attr_accessor :select
 end
+
+require 'beanstalk-client/connection'

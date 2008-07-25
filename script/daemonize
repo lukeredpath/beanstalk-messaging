@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+daemon_file   = ARGV.shift
+pid_directory = ENV['PID_DIR'] || '/tmp'
+
+unless daemon_file
+  puts "You must specify a file to daemonize!"
+  exit 1
+end
+
+require 'rubygems'
+require 'daemons'
+
+Daemons.run(daemon_file, 
+  :backtrace  => true, 
+  :log_output => true, 
+  :dir_mode   => :normal,
+  :dir        => pid_directory
+)

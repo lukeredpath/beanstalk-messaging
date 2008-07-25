@@ -1,8 +1,13 @@
 module Beanstalk
   class QueueManager    
-    def initialize(config_path)
-      @config = YAML.load(File.open(config_path))
+    def initialize(config)
+      @config = config
       @queues = {}
+    end
+    
+    def self.load(config_path)
+      config = YAML.load(File.open(config_path))
+      new(config)
     end
     
     def available_queues
@@ -31,21 +36,11 @@ module Beanstalk
         raise Messaging::UnknownQueue.new("Unknown queue: #{queue_name}. Check your configuration.") unless @config[queue_name]
         host, port  = @config[queue_name][:host], @config[queue_name][:port]
         begin
-          Queue.new(create_pool(host, port))
-        rescue Errno::ECONNREFUSED, Errno::EADDRNOTAVAIL
+          Queue.connect(host, port, Beanstalk.connection_timeout)
+        rescue ConnectionError
           NullQueue.new
-        rescue ConnectionTimeout
-          NullQueue.new
-        end
-      end
-    
-      def create_pool(host, port)
-        begin
-          Timeout::timeout(Beanstalk.connection_timeout) do
-            Beanstalk::Pool.new(["#{host}:#{port}"])
-          end
         rescue Timeout::Error
-          raise ConnectionTimeout
+          NullQueue.new
         end
       end
   end

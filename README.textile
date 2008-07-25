@@ -1,15 +1,15 @@
-= Beanstalk Messaging Plugin for Rails
+h1. Beanstalk Messaging Plugin for Rails
 
 The Beanstalk Messaging Plugin provides a simple interface to the +beanstalkd+ queuing
 process.
 
-= Configuration
+h2. Configuration
 
 Copy beanstalk.example.yml from the plugin config folder to your Rails config folder 
 and configure the queues that you need for your application. Use script/beanstalk to 
 start/stop/restart your beanstalkd processes.
 
-= Using the Beanstalk::QueueManager
+h2. Using the Beanstalk::QueueManager
 
 Use the Beanstalk::QueueManager class to access your queues by name, using the 
 Beanstalk::QueueManager#queue method. For example:
@@ -25,30 +25,32 @@ instance. For example, you may wish to add the following to the bottom of +envir
 
   QUEUE_MANAGER = Beanstalk::QueueManager.new(File.join(RAILS_ROOT, 'config', 'beanstalk.yml'))
   
-
 You can disable queues globally by using the Beanstalk::QueueManager#disable method to temporarily 
 disable the use of that particular queue. Beanstalk::QueueManager#disable_all disables all queues. 
 When a queue is disabled, the Beanstalk::QueueManager will return a Beanstalk::NullQueue instead of an actual 
 Beanstalk::Queue object which will handle any Beanstalk::Queue API calls silently:
 
-  # In environment.rb
-  QUEUE_MANAGER.disable(:my_queue)
-  
-  # Elsewhere in your application...
-  queue = QUEUE_MANAGER.queue(:my_queue)
-  100.times { queue << "In /dev/null, noone can hear you scream..." }
-  # Nothing actually gets sent to the beanstalkd process
+<pre><code>
+# In environment.rb
+QUEUE_MANAGER.disable(:my_queue)
 
+## Elsewhere in your application...
+queue = QUEUE_MANAGER.queue(:my_queue)
+100.times { queue << "In /dev/null, noone can hear you scream..." }
+## Nothing actually gets sent to the beanstalkd process
+</code></pre>
 
-== Using Beanstalk::Queue
+h2. Using Beanstalk::Queue
 
 Use the Beanstalk::Queue API to push messages on to the queue and consume messages. This
 amounts to using Beanstalk::Queue#push (or Beanstalk::Queue#<<) to add messages to the queue,
 and Beanstalk::Queue#next_message to retrieve messages. Note that you do not need to
 transform the data into YAML - this is performed automatically by the queue.
 
-  queue << [1,2,3]
-  # => "---\n1\n2\n3" # YAML version ends up on the queue
-  
-  queue.next_message
-  # => [1,2,3] # YAML deserialization is performed automatically
+<pre><code>
+queue << [1,2,3]
+# => "---\n1\n2\n3" # YAML version ends up on the queue
+
+queue.next_message
+# => [1,2,3] # YAML deserialization is performed automatically
+</code></pre>

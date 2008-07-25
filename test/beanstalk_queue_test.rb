@@ -97,7 +97,6 @@ class LazyConnectionPool
 end
 
 class BeanstalkQueueWithTimingOutConnectionPool < Test::Unit::TestCase
-  
   def setup
     @connection_pool = LazyConnectionPool.new
     @queue = Beanstalk::Queue.new(@connection_pool)
@@ -108,6 +107,35 @@ class BeanstalkQueueWithTimingOutConnectionPool < Test::Unit::TestCase
     @connection_pool.sleep_time = 0.1
     @queue.push('foobar')
     assert @queue.stale?
+  end
+end
+
+class BeanstalkQueueConnectionTest < Test::Unit::TestCase
+  
+  def test_should_establish_a_pool_connection_and_return_a_new_queue_instance
+    Beanstalk::Pool.expects(:new).with(["localhost:4000"]).returns(pool = stub(:open_connections => [stub]))
+    Beanstalk::Queue.stubs(:new).with(pool).returns(queue = stub)
+    assert_equal queue, Beanstalk::Queue.connect('localhost', 4000)
+  end
+  
+  def test_should_raise_a_connection_error_if_beanstalk_pool_has_no_open_connections_after_creating
+    Beanstalk::Pool.stubs(:new).returns(pool = stub(:open_connections => []))    
+    assert_raises(Beanstalk::ConnectionError) do
+      Beanstalk::Queue.connect('localhost', 4000)
+    end
+  end
+  
+  def test_should_raise_timeout_error_if_connection_cannot_be_established_in_the_specified_time
+    Timeout.expects(:timeout).with(5).raises(Timeout::Error)
+    assert_raises(Timeout::Error) do
+      Beanstalk::Queue.connect('localhost', 4000, timeout = 5)
+    end
+  end
+  
+  def test_should_use_a_really_long_timeout_duration_to_simulate_no_timeout_if_not_specified
+    Timeout.expects(:timeout).with(long_time = 10000).yields
+    Beanstalk::Pool.stubs(:new).returns(stub(:open_connections => [stub]))
+    Beanstalk::Queue.connect('localhost', 4000)
   end
   
 end

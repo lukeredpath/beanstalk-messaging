@@ -22,7 +22,7 @@ module Beanstalk
     end
     
     def api_connection
-      RawConnection.new("#{@host}:#{@port}")
+      Connection.new("#{@host}:#{@port}")
     rescue Errno::ECONNREFUSED
       nil
     end
