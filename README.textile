@@ -54,3 +54,4 @@ queue << [1,2,3]
 queue.next_message
 # => [1,2,3] # YAML deserialization is performed automatically
 </code></pre>
+ 
