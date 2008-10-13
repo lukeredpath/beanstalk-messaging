@@ -32,4 +32,25 @@ class QueueMessagingTest < Test::Unit::TestCase
     assert_equal 1, @queue.number_of_pending_messages
   end
   
+  def test_should_be_able_to_send_messages_to_a_specific_tube
+    @queue.use_tube('exampletube')
+    
+    @queue << "Hello World"
+    @queue.next_message do |message|
+      assert_equal "Hello World", message
+    end
+    
+    assert_equal 0, @queue.number_of_pending_messages
+  end
+  
+  def test_should_only_send_messages_to_a_single_tube_when_use_tube_has_been_called
+    @queue.use_tube('exampletube')
+    
+    @queue << "Hello World"
+    assert_equal 1, @queue.number_of_pending_messages
+    
+    @queue.use_default_tube
+    assert_equal 0, @queue.number_of_pending_messages
+  end
+  
 end

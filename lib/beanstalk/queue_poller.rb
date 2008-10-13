@@ -27,8 +27,9 @@ module Beanstalk
       end
     end
     
-    def poll(queue_name, &block)
+    def poll(queue_name, tube_name = nil, &block)
       load_queue!(queue_name)
+      @queue.use_tube(tube_name) if tube_name
       
       loop do
         retrieve_and_handle_message(queue_name, &block)

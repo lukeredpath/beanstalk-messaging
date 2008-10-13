@@ -32,7 +32,6 @@ class BeanstalkQueuePollerTest < Test::Unit::TestCase
   end
   
   def test_should_set_instance_queue_when_a_non_stale_queue_is_found
-    
     manager = stub('queue manager')
     manager.stubs(:reset_queue).with(:queue_name).returns(queue = stub('queue', :stale? => false))
     
@@ -59,6 +58,21 @@ class BeanstalkQueuePollerTest < Test::Unit::TestCase
     
     poller.poll(:queue_name) do |message|
       assert_equal queued_message, message
+    end
+  end
+  
+  def test_poller_uses_the_specified_tube
+    queue = Beanstalk::Queue.new(pool = stub('pool'))
+    queue.stubs(:number_of_pending_messages).returns(0)
+    queue.expects(:use_tube).with('tubename')
+    
+    manager = stub('queue manager')
+    manager.stubs(:reset_queue).with(:queue_name).returns(queue)
+
+    poller = Beanstalk::QueuePoller.new(manager, 30, @dev_null)
+    limit_looping(poller)
+    
+    poller.poll(:queue_name, 'tubename') do
     end
   end
   
