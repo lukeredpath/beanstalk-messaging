@@ -1,8 +1,13 @@
 module Beanstalk
   class Queue
+    DEFAULT_TUBE = 'default'
+    
+    attr_reader :current_tube
+    
     def initialize(pool)
       @pool = pool
       @stale = false
+      @current_tube = 'default'
     end
     
     def self.connect(host, port, timeout = 10000)
@@ -14,6 +19,16 @@ module Beanstalk
           raise ConnectionError.new("Beanstalk::Pool connection failed")
         end
       end
+    end
+    
+    def use_tube(tubename)
+      @current_tube = tubename
+      @pool.watch(tubename)
+      @pool.use(tubename)
+    end
+    
+    def use_default_tube
+      use_tube(DEFAULT_TUBE)
     end
   
     def stale?
@@ -45,7 +60,7 @@ module Beanstalk
     end
   
     def raw_stats
-      @pool.stats
+      @pool.stats_tube(@current_tube)
     end
   
     def next_message

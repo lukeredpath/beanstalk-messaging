@@ -3,7 +3,7 @@ require File.dirname(__FILE__) + '/test_helper'
 class BeanstalkQueueTest < Test::Unit::TestCase
   
   def setup
-    @connection_pool = mock('pool')
+    @connection_pool = stub_everything('pool')
     @queue = Beanstalk::Queue.new(@connection_pool)
   end
   
@@ -58,12 +58,12 @@ class BeanstalkQueueTest < Test::Unit::TestCase
   end
   
   def test_should_return_the_number_of_pending_messages
-    @connection_pool.stubs(:stats).returns({'current-jobs-ready' => 15})
+    @connection_pool.stubs(:stats_tube).returns({'current-jobs-ready' => 15})
     assert_equal 15, @queue.number_of_pending_messages
   end
   
   def test_should_return_the_total_number_of_messages_added_to_the_queue
-    @connection_pool.stubs(:stats).returns({'total-jobs' => 1500})
+    @connection_pool.stubs(:stats_tube).returns({'total-jobs' => 1500})
     assert_equal 1500, @queue.total_jobs
   end
   
@@ -85,6 +85,43 @@ class BeanstalkQueueTest < Test::Unit::TestCase
     @queue.stubs(:number_of_pending_messages).returns(0)
     assert_nil @queue.next_message
   end
+  
+  def test_should_tell_the_connection_pool_to_use_and_watch_tube_when_calling_use_tube
+    @connection_pool.expects(:use).with('tubename')
+    @connection_pool.expects(:watch).with('tubename')
+    @queue.use_tube('tubename')
+  end
+  
+  def test_should_report_the_current_tube_name
+    @connection_pool.stubs(:use)
+    @connection_pool.stubs(:watch)
+    @queue.use_tube('tubename')
+    assert_equal 'tubename', @queue.current_tube
+  end
+  
+  def test_should_use_default_tube_by_default
+    assert_equal 'default', @queue.current_tube
+  end
+end
+
+class BeanstalkQueueConnectedToTubeTest < Test::Unit::TestCase
+  
+  def setup
+    @connection_pool = stub_everything('pool')
+    @queue = Beanstalk::Queue.new(@connection_pool)
+    @queue.use_tube('dummy')
+  end
+  
+  def test_should_return_number_of_pending_messages_for_the_current_tube
+    @connection_pool.stubs(:stats_tube).with('dummy').returns({'current-jobs-ready' => 5})
+    assert_equal 5, @queue.number_of_pending_messages
+  end
+  
+  def test_should_return_total_jobs_for_the_current_tube
+    @connection_pool.stubs(:stats_tube).with('dummy').returns({'total-jobs' => 50})
+    assert_equal 50, @queue.total_jobs
+  end
+  
 end
 
 class LazyConnectionPool
@@ -93,6 +130,12 @@ class LazyConnectionPool
   def yput(message)
     sleep sleep_time
     throw :yo_momma_from_the_train
+  end
+  
+  def watch(tube)    
+  end
+  
+  def use(tube)    
   end
 end
 
@@ -134,7 +177,7 @@ class BeanstalkQueueConnectionTest < Test::Unit::TestCase
   
   def test_should_use_a_really_long_timeout_duration_to_simulate_no_timeout_if_not_specified
     Timeout.expects(:timeout).with(long_time = 10000).yields
-    Beanstalk::Pool.stubs(:new).returns(stub(:open_connections => [stub]))
+    Beanstalk::Pool.stubs(:new).returns(stub_everything(:open_connections => [stub]))
     Beanstalk::Queue.connect('localhost', 4000)
   end
   
