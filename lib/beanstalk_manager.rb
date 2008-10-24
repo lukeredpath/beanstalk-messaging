@@ -44,12 +44,17 @@ module Beanstalk
       @daemons.keys.map { |name| run(name) }
     end
     
+    def running?(daemon_name)
+      if daemon = @daemons[daemon_name]
+        File.exist?(daemon_pid_path(daemon))
+      end
+    end
+    
     def run(daemon_name)
       if daemon = @daemons[daemon_name]
         if conn = daemon.run
           pid = conn.stats['pid']
-          pid_path = File.join(@pid_folder, "beanstalk_#{daemon.port}.pid")
-          File.open(pid_path, 'w') { |io| io.write(pid) }
+          File.open(daemon_pid_path(daemon), 'w') { |io| io.write(pid) }
           pid
         else
           nil
@@ -87,6 +92,10 @@ module Beanstalk
       def kill_daemon(pid_file)
         system("kill -9 #{File.read(pid_file)}")
         FileUtils.rm_f(pid_file)
+      end
+      
+      def daemon_pid_path(daemon)
+        File.join(@pid_folder, "beanstalk_#{daemon.port}.pid")
       end
   end
 end

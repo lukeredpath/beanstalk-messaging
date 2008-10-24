@@ -58,4 +58,11 @@ class QueueManagementTest < Test::Unit::TestCase
     assert_equal 5, queue.number_of_pending_messages
   end
   
+  def test_we_can_detect_when_a_daemon_is_running
+    @daemon_manager.run('test_queue_1')
+    assert @daemon_manager.running?('test_queue_1')
+    @daemon_manager.kill('test_queue_1')
+    assert !@daemon_manager.running?('test_queue_1')
+  end
+  
 end
