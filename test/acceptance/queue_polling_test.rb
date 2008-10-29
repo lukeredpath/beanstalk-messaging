@@ -26,10 +26,13 @@ class QueuePollingTest < Test::Unit::TestCase
     
     queue = Beanstalk::Queue.connect('0.0.0.0', 33000)
     sleep 0.5 # give the poller and queue connection time to start up
+    
     10.times do
       queue << 'message'
-      sleep 0.1
     end
+    
+    sleep 1
+    consumer.kill
     
     assert_equal 10, collected.length
   end
@@ -49,8 +52,10 @@ class QueuePollingTest < Test::Unit::TestCase
     sleep 0.5 # give the poller and queue connection time to start up
     10.times do
       queue << 'message'
-      sleep 0.1
     end
+    
+    sleep 1
+    consumer.kill
     
     assert_equal 10, collected.length
   end
