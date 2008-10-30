@@ -26,4 +26,15 @@ class NullQueueTest < Test::Unit::TestCase
     assert_nil Beanstalk::NullQueue.new.next_message
   end
   
+  def test_should_return_a_hash_like_object_for_raw_stats
+    assert Beanstalk::NullQueue.new.raw_stats.respond_to?(:[])
+  end
+  
+  def test_should_always_respond_like_a_real_queue
+    null_queue = Beanstalk::NullQueue.new
+    (Beanstalk::Queue.new(stub).public_methods - Object.public_methods).each do |method|
+      assert null_queue.respond_to?(method), "NullQueue should respond to #{method} like a normal Queue"
+    end
+  end
+  
 end
