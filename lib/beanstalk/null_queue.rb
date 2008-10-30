@@ -23,5 +23,13 @@ module Beanstalk
     def next_message(&block)
       nil
     end
+    
+    def raw_stats
+      {}
+    end
+    
+    def use_tube(tube_name); end
+    def current_tube; end
+    def use_default_tube; end
   end
 end  
