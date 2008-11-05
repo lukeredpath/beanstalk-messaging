@@ -16,6 +16,10 @@ module Beanstalk
       0
     end
     
+    def number_of_processed_messages
+      0
+    end
+    
     def push(message); end
     
     alias :<< :push

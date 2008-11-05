@@ -20,7 +20,7 @@ module Beanstalk
         if queue.stale?
           render_row(queue_name.to_s, 'OFFLINE', 'OFFLINE', 'OFFLINE')
         else
-          render_row(queue_name.to_s, queue.total_jobs, queue.number_of_pending_messages, queue.raw_stats['cmd-delete'])
+          render_row(queue_name.to_s, queue.total_jobs, queue.number_of_pending_messages, queue.number_of_processed_messages)
         end
       end
       
