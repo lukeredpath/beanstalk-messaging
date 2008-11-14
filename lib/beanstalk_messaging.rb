@@ -5,13 +5,16 @@ module Messaging
   class UnknownQueue < Exception; end
 end
 
-module Beanstalk
-  
+module Beanstalk  
   class_eval do
     attr_writer :connection_timeout
     
     def connection_timeout
       @connection_timeout || 1
+    end
+    
+    def custom_pid_directory
+      ENV['BEANSTALK_PID_DIR']
     end
   end
   
