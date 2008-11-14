@@ -6,6 +6,7 @@ require 'stringio'
 $LOAD_PATH << File.join(File.dirname(__FILE__), *%w[.. vendor plugins beanstalk_messaging vendor beanstalk-client-1.0.2])
 $LOAD_PATH << File.join(File.dirname(__FILE__), *%w[.. vendor plugins beanstalk_messaging lib])
 
+require 'beanstalk_messaging'
 require 'beanstalk_manager'
 
 CONFIG_PATH = File.join(File.dirname(__FILE__), *%w[.. config beanstalk.yml])
