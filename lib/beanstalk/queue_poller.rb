@@ -59,10 +59,11 @@ module Beanstalk
       rescue Beanstalk::UnexpectedResponse => e
         message.release if message
         error = e.message rescue nil
-        puts "Unexpected response received from Beanstalk (#{error}) Waiting before continuing."
+        puts "#{Time.now.to_s} - Unexpected response received from Beanstalk (#{error}) Waiting before continuing."
+        puts message rescue nil
         sleep @retry_delay
       rescue EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED => e
-        puts "Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
+        puts "#{Time.now.to_s} - Caught exception: '#{e.message}'. Beanstalk daemon has probably gone away."
         sleep @retry_delay
         load_queue!(queue_name)
       end

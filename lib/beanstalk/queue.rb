@@ -58,6 +58,10 @@ module Beanstalk
     def total_jobs
       raw_stats['total-jobs']
     end
+    
+    def number_of_processed_messages
+      total_jobs - number_of_pending_messages
+    end
   
     def raw_stats
       @pool.stats_tube(@current_tube)
